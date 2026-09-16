@@ -161,6 +161,21 @@ interface Totals {
   inWorkCount: number;
 }
 
+/**
+ * Fixed vertical offset where item cards begin, in px. The header's height
+ * never varies with content (every header line is truncated to one row via
+ * ellipsize), so this can be computed once and reused both to size photos
+ * before rendering and to lay out cards during rendering.
+ */
+function computeItemsTop(): number {
+  let y = 46;
+  y += 30; // rule under the badge/budget row
+  y += 22; // project name line
+  y += 17; // client/address info line
+  y += 13; // rule under the info line
+  return y + 14;
+}
+
 function drawHeader(pdf: jsPDF, fontFamily: string, project: Project, totals: Totals): number {
   const drawText = makeTextDrawer(pdf, fontFamily);
   const x0 = MARGIN_X;
@@ -446,6 +461,15 @@ export async function exportSpecificationToPdf(
   }
   pdf.setFont(fontFamily, 'normal');
 
+  // Card height is fixed regardless of content, so it can be computed once
+  // up front and used to cover-crop photos at the exact aspect ratio they'll
+  // be drawn at (otherwise a mismatched aspect ratio between the cropped
+  // canvas and the final draw box stretches/squishes the image).
+  const itemsTop = computeItemsTop();
+  const footerTop = PAGE_H - 30;
+  const availableH = footerTop - itemsTop;
+  const cardH = (availableH - (ITEMS_PER_PAGE - 1) * CARD_GAP) / ITEMS_PER_PAGE;
+
   // Pre-generate QR codes and cover-cropped photos for all items
   onProgress?.('Подготовка фото и QR-кодов...');
   const qrCodesMap = new Map<string, string>();
@@ -459,7 +483,7 @@ export async function exportSpecificationToPdf(
       // ignore individual QR failure
     }
     if (item.mainPhoto) {
-      const dataUrl = await loadImageCover(item.mainPhoto, PHOTO_W * photoScale, PAGE_H * photoScale);
+      const dataUrl = await loadImageCover(item.mainPhoto, PHOTO_W * photoScale, cardH * photoScale);
       if (dataUrl) photoMap.set(item.id, dataUrl);
     }
   }
