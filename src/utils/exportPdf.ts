@@ -63,20 +63,20 @@ export async function exportSpecificationToPdf(
         <div>
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 14px;">
             <div style="flex: 1; min-width: 0; overflow: hidden;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="background: #f59e0b; color: #000; font-weight: 800; font-size: 11px; padding: 2px 7px; border-radius: 4px; letter-spacing: 0.5px; flex-shrink: 0;">COMPLSPEC</div>
-                <span style="font-size: 13px; font-weight: 700; color: #475569; letter-spacing: 1px;">STUDIO • ВЕДОМОСТЬ КОМПЛЕКТАЦИИ</span>
+              <div style="display: flex; align-items: center; gap: 8px; line-height: 1.4;">
+                <div style="background: #f59e0b; color: #000; font-weight: 800; font-size: 11px; line-height: 1.4; padding: 2px 7px; border-radius: 4px; letter-spacing: 0.5px; flex-shrink: 0;">COMPLSPEC</div>
+                <span style="font-size: 13px; font-weight: 700; color: #475569; letter-spacing: 1px; line-height: 1.4;">STUDIO • ВЕДОМОСТЬ КОМПЛЕКТАЦИИ</span>
               </div>
-              <h1 style="font-size: 19px; font-weight: 800; color: #0f172a; margin: 4px 0 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${project.name}</h1>
-              <div style="font-size: 12px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              <h1 style="font-size: 19px; line-height: 1.4; font-weight: 800; color: #0f172a; margin: 6px 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${project.name}</h1>
+              <div style="font-size: 12px; line-height: 1.5; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                 Клиент: <strong>${project.client}</strong> &bull; Адрес: ${project.address} &bull; Площадь: ${project.area} м²
               </div>
             </div>
 
             <div style="text-align: right; flex-shrink: 0; min-width: 230px;">
-              <div style="font-size: 11px; color: #64748b; white-space: nowrap;">Бюджет проекта / Освоено</div>
-              <div style="font-size: 17px; font-weight: 800; color: #0f172a; white-space: nowrap;">${formatCurrency(totalSpent)} <span style="font-size: 11px; font-weight: 500; color: #64748b;">из ${formatCurrency(project.totalBudget)}</span></div>
-              <div style="font-size: 11px; color: #16a34a; font-weight: 600; white-space: nowrap;">Позиций: ${totalCount} (в закупке: ${inWorkCount})</div>
+              <div style="font-size: 11px; line-height: 1.5; color: #64748b; white-space: nowrap;">Бюджет проекта / Освоено</div>
+              <div style="font-size: 17px; line-height: 1.5; font-weight: 800; color: #0f172a; white-space: nowrap;">${formatCurrency(totalSpent)} <span style="font-size: 11px; font-weight: 500; color: #64748b;">из ${formatCurrency(project.totalBudget)}</span></div>
+              <div style="font-size: 11px; line-height: 1.5; color: #16a34a; font-weight: 600; white-space: nowrap;">Позиций: ${totalCount} (в закупке: ${inWorkCount})</div>
             </div>
           </div>
 
@@ -89,35 +89,33 @@ export async function exportSpecificationToPdf(
                 const st = STATUS_CONFIG[item.status];
 
                 return `
-                <div style="display: flex; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #f8fafc; height: 130px;">
+                <div style="display: flex; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #f8fafc; height: 150px;">
                   <!-- Large Photo -->
-                  <div style="width: 165px; height: 130px; min-width: 165px; background: #e2e8f0; position: relative; overflow: hidden; border-right: 1px solid #cbd5e1;">
+                  <div style="width: 165px; height: 150px; min-width: 165px; background: #e2e8f0; position: relative; overflow: hidden; border-right: 1px solid #cbd5e1;">
                     ${
                       item.mainPhoto
                         ? `<img src="${item.mainPhoto}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.style.display='none'" />`
-                        : `<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #94a3b8; font-size: 11px;">Нет фото</div>`
+                        : `<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #94a3b8; font-size: 11px; line-height: 1.4;">Нет фото</div>`
                     }
-                    <div style="position: absolute; top: 6px; left: 6px; background: rgba(15, 23, 42, 0.9); color: #ffffff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">
+                    <div style="position: absolute; top: 6px; left: 6px; background: rgba(15, 23, 42, 0.9); color: #ffffff; font-size: 10px; line-height: 1.4; font-weight: 700; padding: 2px 6px; border-radius: 4px;">
                       ${item.code}
                     </div>
                   </div>
 
                   <!-- Details Middle -->
-                  <div style="flex: 1; min-width: 0; padding: 8px 14px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
-                    <div style="overflow: hidden;">
-                      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 2px;">
-                        <span style="flex: 1; min-width: 0; font-size: 11px; font-weight: 700; color: #0284c7; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.roomName} &bull; ${item.category}</span>
-                        <span style="flex-shrink: 0; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 10px; font-weight: 600; padding: 1px 8px; border-radius: 12px; white-space: nowrap;">
-                          ${st ? st.label : item.status}
-                        </span>
-                      </div>
-                      <div style="font-size: 13px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</div>
-                      <div style="font-size: 11px; color: #475569; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        ${item.brand ? `<strong>Бренд:</strong> ${item.brand}` : ''} ${item.article ? `&bull; <strong>Арт:</strong> ${item.article}` : ''}
-                      </div>
+                  <div style="flex: 1; min-width: 0; padding: 10px 14px; display: flex; flex-direction: column; gap: 4px; overflow: hidden;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                      <span style="flex: 1; min-width: 0; font-size: 11px; line-height: 1.4; font-weight: 700; color: #0284c7; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.roomName} &bull; ${item.category}</span>
+                      <span style="flex-shrink: 0; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 10px; line-height: 1.4; font-weight: 600; padding: 1px 8px; border-radius: 12px; white-space: nowrap;">
+                        ${st ? st.label : item.status}
+                      </span>
+                    </div>
+                    <div style="font-size: 13px; line-height: 1.4; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</div>
+                    <div style="font-size: 11px; line-height: 1.4; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                      ${item.brand ? `<strong>Бренд:</strong> ${item.brand}` : ''} ${item.article ? `&bull; <strong>Арт:</strong> ${item.article}` : ''}
                     </div>
 
-                    <div style="font-size: 11px; color: #334155; line-height: 1.35; margin-top: 2px; overflow: hidden; max-height: 48px;">
+                    <div style="font-size: 11px; line-height: 1.4; color: #334155; overflow: hidden; margin-top: 2px;">
                       <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><strong>Габариты:</strong> ${item.dimensions || '—'}</div>
                       <div style="color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><strong>Отделка:</strong> ${item.finish || '—'}</div>
                       ${item.techNotes ? `<div style="color: #64748b; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">ТЗ: ${item.techNotes}</div>` : ''}
@@ -125,14 +123,14 @@ export async function exportSpecificationToPdf(
                   </div>
 
                   <!-- Price and QR Column -->
-                  <div style="width: 210px; min-width: 210px; padding: 8px 14px; background: #f1f5f9; border-left: 1px solid #cbd5e1; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+                  <div style="width: 210px; min-width: 210px; padding: 10px 14px; background: #f1f5f9; border-left: 1px solid #cbd5e1; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
                       <div style="flex: 1; min-width: 0; overflow: hidden;">
-                        <div style="font-size: 11px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Кол-во: <strong style="color: #0f172a;">${item.quantity} ${item.unit}</strong></div>
-                        <div style="font-size: 11px; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Базовая: ${formatCurrency(item.basePrice)}</div>
+                        <div style="font-size: 11px; line-height: 1.5; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Кол-во: <strong style="color: #0f172a;">${item.quantity} ${item.unit}</strong></div>
+                        <div style="font-size: 11px; line-height: 1.5; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Базовая: ${formatCurrency(item.basePrice)}</div>
                         ${
                           item.supplierDiscount > 0
-                            ? `<div style="font-size: 10px; color: #16a34a; font-weight: 600; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Скидка от поставщика: ${item.supplierDiscount}%</div>`
+                            ? `<div style="font-size: 10px; line-height: 1.5; color: #16a34a; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Скидка от поставщика: ${item.supplierDiscount}%</div>`
                             : ''
                         }
                       </div>
@@ -143,9 +141,9 @@ export async function exportSpecificationToPdf(
                       }
                     </div>
 
-                    <div style="border-top: 1px dashed #cbd5e1; padding-top: 5px; display: flex; justify-content: space-between; align-items: flex-end; gap: 6px;">
-                      <span style="font-size: 11px; font-weight: 600; color: #475569; white-space: nowrap;">ИТОГО:</span>
-                      <span style="font-size: 15px; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${formatCurrency(totalPos)}</span>
+                    <div style="border-top: 1px dashed #cbd5e1; padding-top: 6px; display: flex; justify-content: space-between; align-items: flex-end; gap: 6px;">
+                      <span style="font-size: 11px; line-height: 1.4; font-weight: 600; color: #475569; white-space: nowrap;">ИТОГО:</span>
+                      <span style="font-size: 15px; line-height: 1.4; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${formatCurrency(totalPos)}</span>
                     </div>
                   </div>
                 </div>
@@ -167,6 +165,14 @@ export async function exportSpecificationToPdf(
 
   container.innerHTML = pagesHtml;
   document.body.appendChild(container);
+
+  // Ensure web fonts are fully loaded before measuring/rasterizing layout,
+  // otherwise html2canvas can capture mid-swap font metrics and lines overlap.
+  try {
+    await document.fonts.ready;
+  } catch {
+    // ignore - proceed with whatever fonts are available
+  }
 
   try {
     const pdf = new jsPDF({
