@@ -63,6 +63,18 @@ export interface Project {
   categories?: string[];
 }
 
+/**
+ * Bundles a project together with its own specification items, rooms and
+ * categories so multiple independent projects can be stored and switched
+ * between in the same session.
+ */
+export interface ProjectBundle {
+  project: Project;
+  items: SpecificationItem[];
+  rooms: Room[];
+  categories: string[];
+}
+
 export type UserRole = 'team' | 'client' | 'contractor';
 
 export interface UserProfile {

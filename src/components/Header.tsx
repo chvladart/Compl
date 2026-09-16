@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  ChevronDown,
   FileSpreadsheet,
   FileText,
   FolderKanban,
@@ -17,6 +18,7 @@ interface HeaderProps {
   user: UserProfile;
   syncStatus?: 'synced' | 'syncing' | 'offline';
   onOpenSettings: () => void;
+  onOpenProjects: () => void;
   onOpenRooms?: () => void;
   onExportPdf: () => void;
   onExportExcel: () => void;
@@ -32,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   user,
   syncStatus = 'synced',
   onOpenSettings,
+  onOpenProjects,
   onOpenRooms,
   onExportPdf,
   onExportExcel,
@@ -80,16 +83,17 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Project selector / settings trigger */}
           <div className="flex items-center gap-1.5">
             <button
-              onClick={onOpenSettings}
+              onClick={onOpenProjects}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors max-w-[200px] sm:max-w-[320px] truncate cursor-pointer ${
                 isDarkMode
                   ? 'bg-[#141c2b] border-[#223049] text-slate-200 hover:border-amber-500/50 hover:text-amber-400'
                   : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-amber-500 hover:text-amber-600'
               }`}
-              title="Настройки проекта, комнат и категорий"
+              title="Переключить или создать проект"
             >
               <FolderKanban className="w-3.5 h-3.5 text-amber-500 shrink-0" />
               <span className="truncate">{project.name}</span>
+              <ChevronDown className="w-3 h-3 opacity-60 shrink-0" />
             </button>
 
             <button

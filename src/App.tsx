@@ -8,6 +8,7 @@ import { ItemModal } from './components/ItemModal';
 import { PhotoLightbox } from './components/PhotoLightbox';
 import { ProjectHero } from './components/ProjectHero';
 import { ProjectSettingsModal } from './components/ProjectSettingsModal';
+import { ProjectSwitcherModal } from './components/ProjectSwitcherModal';
 import { QrModal } from './components/QrModal';
 import { RoleSwitcherModal } from './components/RoleSwitcherModal';
 import { RoomsModal } from './components/RoomsModal';
@@ -26,6 +27,7 @@ import {
   ItemCategory,
   ItemStatus,
   Project,
+  ProjectBundle,
   Room,
   SpecificationItem,
   UserProfile,
@@ -35,18 +37,32 @@ import { exportSpecificationToExcel } from './utils/exportExcel';
 import { exportSpecificationToPdf } from './utils/exportPdf';
 import { calcItemTotal, CATEGORIES } from './utils/formatters';
 
-export default function App() {
-  // 1. App State
-  const [project, setProject] = useState<Project>(INITIAL_PROJECT);
-  const [items, setItems] = useState<SpecificationItem[]>(INITIAL_ITEMS);
-  const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
-  const [categories, setCategories] = useState<string[]>(
+const INITIAL_BUNDLE: ProjectBundle = {
+  project: INITIAL_PROJECT,
+  items: INITIAL_ITEMS,
+  rooms: INITIAL_ROOMS,
+  categories:
     INITIAL_PROJECT.categories && INITIAL_PROJECT.categories.length > 0
       ? INITIAL_PROJECT.categories
-      : CATEGORIES
-  );
+      : CATEGORIES,
+};
+
+export default function App() {
+  // 1. App State — a project bundle owns its own items, rooms & categories,
+  // which lets the app hold any number of independent projects at once.
+  const [projects, setProjects] = useState<ProjectBundle[]>([INITIAL_BUNDLE]);
+  const [activeProjectId, setActiveProjectId] = useState<string>(INITIAL_PROJECT.id);
   const [currentUser, setCurrentUser] = useState<UserProfile>(MOCK_USER_TEAM);
   const [isDarkMode, setIsDarkMode] = useState(true);
+
+  const activeBundle = useMemo(
+    () => projects.find((b) => b.project.id === activeProjectId) ?? projects[0],
+    [projects, activeProjectId]
+  );
+  const project = activeBundle.project;
+  const items = activeBundle.items;
+  const rooms = activeBundle.rooms;
+  const categories = activeBundle.categories;
 
   // Cloud sync state
   const [lastSyncedTime, setLastSyncedTime] = useState<Date | null>(new Date());
@@ -80,6 +96,17 @@ export default function App() {
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
   const [isRoomsModalOpen, setIsRoomsModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isProjectSwitcherOpen, setIsProjectSwitcherOpen] = useState(false);
+
+  // Reset item-list filters whenever the active project changes so filters
+  // from one project don't leak into another.
+  useEffect(() => {
+    setSearchQuery('');
+    setSelectedRoom('all');
+    setSelectedCategory('all');
+    setSelectedStatus('all');
+    setOnlyWithDiscount(false);
+  }, [activeProjectId]);
 
   // Read URL query params on mount for role invitation (e.g. ?role=client or ?role=contractor)
   useEffect(() => {
@@ -92,16 +119,16 @@ export default function App() {
     }
   }, []);
 
-  // Fetch initial cloud state
+  // Fetch initial cloud state (all projects + which one was active)
   useEffect(() => {
     fetch('/api/sync')
       .then((res) => res.json())
       .then((data) => {
-        if (data && data.items && Array.isArray(data.items) && data.items.length > 0) {
-          setItems(data.items);
-        }
-        if (data && data.project) {
-          setProject(data.project);
+        if (data && Array.isArray(data.projects) && data.projects.length > 0) {
+          setProjects(data.projects);
+          if (data.activeProjectId) {
+            setActiveProjectId(data.activeProjectId);
+          }
         }
         setLastSyncedTime(new Date());
       })
@@ -110,15 +137,16 @@ export default function App() {
       });
   }, []);
 
-  // Sync state with server helper
-  const syncWithServer = async (updatedProject: Project, updatedItems: SpecificationItem[]) => {
+  // Sync state with server helper — sends every project so all connected
+  // devices can see the full list, not just the one currently open.
+  const syncWithServer = async (nextProjects: ProjectBundle[], nextActiveId: string) => {
     try {
       await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          project: updatedProject,
-          items: updatedItems,
+          projects: nextProjects,
+          activeProjectId: nextActiveId,
         }),
       });
       setLastSyncedTime(new Date());
@@ -129,36 +157,98 @@ export default function App() {
 
   // Manual sync trigger for cloud modal
   const handleManualSync = async () => {
-    await syncWithServer(project, items);
+    await syncWithServer(projects, activeProjectId);
+  };
+
+  // Applies a patch to the currently active project bundle only, optionally
+  // pushing the result to the cloud sync server.
+  const updateActiveProject = (
+    patch: Partial<ProjectBundle> | ((bundle: ProjectBundle) => Partial<ProjectBundle>),
+    sync = false
+  ) => {
+    setProjects((prev) => {
+      const next = prev.map((b) => {
+        if (b.project.id !== activeProjectId) return b;
+        const patchObj = typeof patch === 'function' ? patch(b) : patch;
+        return { ...b, ...patchObj };
+      });
+      if (sync) syncWithServer(next, activeProjectId);
+      return next;
+    });
+  };
+
+  // Project management handlers
+  const handleCreateProject = (newProject: Project) => {
+    const bundle: ProjectBundle = {
+      project: newProject,
+      items: [],
+      rooms: newProject.rooms,
+      categories:
+        newProject.categories && newProject.categories.length > 0
+          ? newProject.categories
+          : CATEGORIES,
+    };
+    setProjects((prev) => {
+      const next = [...prev, bundle];
+      syncWithServer(next, newProject.id);
+      return next;
+    });
+    setActiveProjectId(newProject.id);
+  };
+
+  const handleSwitchProject = (id: string) => {
+    setActiveProjectId(id);
+  };
+
+  const handleDeleteProject = (id: string) => {
+    if (projects.length <= 1) {
+      alert('Нельзя удалить последний проект. Сначала создайте другой проект.');
+      return;
+    }
+    if (
+      !window.confirm(
+        'Удалить этот проект вместе со всей ведомостью комплектации без возможности восстановления?'
+      )
+    ) {
+      return;
+    }
+    setProjects((prev) => {
+      const next = prev.filter((b) => b.project.id !== id);
+      const nextActiveId = activeProjectId === id ? next[0].project.id : activeProjectId;
+      syncWithServer(next, nextActiveId);
+      if (activeProjectId === id) {
+        setActiveProjectId(nextActiveId);
+      }
+      return next;
+    });
   };
 
   // Items CRUD Handlers
   const handleSaveItem = (savedItem: SpecificationItem) => {
-    let nextItems: SpecificationItem[];
-    const exists = items.some((it) => it.id === savedItem.id);
-    if (exists) {
-      nextItems = items.map((it) => (it.id === savedItem.id ? savedItem : it));
-    } else {
-      nextItems = [savedItem, ...items];
-    }
-    setItems(nextItems);
-    syncWithServer(project, nextItems);
+    updateActiveProject((b) => {
+      const exists = b.items.some((it) => it.id === savedItem.id);
+      const nextItems = exists
+        ? b.items.map((it) => (it.id === savedItem.id ? savedItem : it))
+        : [savedItem, ...b.items];
+      return { items: nextItems };
+    }, true);
   };
 
   const handleDeleteItem = (id: string) => {
     if (window.confirm('Удалить эту позицию из ведомости комплектации?')) {
-      const nextItems = items.filter((it) => it.id !== id);
-      setItems(nextItems);
-      syncWithServer(project, nextItems);
+      updateActiveProject((b) => ({ items: b.items.filter((it) => it.id !== id) }), true);
     }
   };
 
   const handleStatusChange = (id: string, newStatus: ItemStatus) => {
-    const nextItems = items.map((it) =>
-      it.id === id ? { ...it, status: newStatus, updatedAt: new Date().toISOString() } : it
+    updateActiveProject(
+      (b) => ({
+        items: b.items.map((it) =>
+          it.id === id ? { ...it, status: newStatus, updatedAt: new Date().toISOString() } : it
+        ),
+      }),
+      true
     );
-    setItems(nextItems);
-    syncWithServer(project, nextItems);
   };
 
   const handleClientStatusChange = (
@@ -166,29 +256,35 @@ export default function App() {
     newClientStatus: ClientApprovalStatus,
     comment?: string
   ) => {
-    const nextItems = items.map((it) => {
-      if (it.id !== id) return it;
-      const updated: SpecificationItem = {
-        ...it,
-        clientStatus: newClientStatus,
-        clientComment: comment !== undefined ? comment : it.clientComment,
-        updatedAt: new Date().toISOString(),
-      };
-      if (newClientStatus === 'approved') {
-        updated.status = 'approved';
-      }
-      return updated;
-    });
-    setItems(nextItems);
-    syncWithServer(project, nextItems);
+    updateActiveProject(
+      (b) => ({
+        items: b.items.map((it) => {
+          if (it.id !== id) return it;
+          const updated: SpecificationItem = {
+            ...it,
+            clientStatus: newClientStatus,
+            clientComment: comment !== undefined ? comment : it.clientComment,
+            updatedAt: new Date().toISOString(),
+          };
+          if (newClientStatus === 'approved') {
+            updated.status = 'approved';
+          }
+          return updated;
+        }),
+      }),
+      true
+    );
   };
 
   const handleQuantityChange = (id: string, newQty: number) => {
-    const nextItems = items.map((it) =>
-      it.id === id ? { ...it, quantity: newQty, updatedAt: new Date().toISOString() } : it
+    updateActiveProject(
+      (b) => ({
+        items: b.items.map((it) =>
+          it.id === id ? { ...it, quantity: newQty, updatedAt: new Date().toISOString() } : it
+        ),
+      }),
+      true
     );
-    setItems(nextItems);
-    syncWithServer(project, nextItems);
   };
 
   // Role Switcher Handler
@@ -380,6 +476,7 @@ export default function App() {
         project={project}
         user={currentUser}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenProjects={() => setIsProjectSwitcherOpen(true)}
         onOpenCloud={() => setIsCloudModalOpen(true)}
         onOpenRoleModal={() => setIsRoleModalOpen(true)}
         onExportPdf={handleExportPdf}
@@ -546,9 +643,7 @@ export default function App() {
         lastSyncedTime={lastSyncedTime}
         onManualSync={handleManualSync}
         onImportProjectData={({ project: newProj, items: newItems }) => {
-          setProject(newProj);
-          setItems(newItems);
-          syncWithServer(newProj, newItems);
+          updateActiveProject((b) => ({ project: { ...newProj, id: b.project.id }, items: newItems }), true);
         }}
       />
 
@@ -557,11 +652,10 @@ export default function App() {
         onClose={() => setIsRoomsModalOpen(false)}
         rooms={rooms}
         onAddRoom={(newRoom) => {
-          const updated = [...rooms, newRoom];
-          setRooms(updated);
+          updateActiveProject((b) => ({ rooms: [...b.rooms, newRoom] }));
         }}
         onDeleteRoom={(id) => {
-          setRooms(rooms.filter((r) => r.id !== id));
+          updateActiveProject((b) => ({ rooms: b.rooms.filter((r) => r.id !== id) }));
         }}
       />
 
@@ -574,11 +668,23 @@ export default function App() {
         isDarkMode={isDarkMode}
         onSaveProject={(updatedProject, updatedRooms, updatedCategories) => {
           const finalProject = { ...updatedProject, categories: updatedCategories };
-          setProject(finalProject);
-          setRooms(updatedRooms);
-          setCategories(updatedCategories);
-          syncWithServer(finalProject, items);
+          updateActiveProject(
+            () => ({ project: finalProject, rooms: updatedRooms, categories: updatedCategories }),
+            true
+          );
         }}
+      />
+
+      <ProjectSwitcherModal
+        isOpen={isProjectSwitcherOpen}
+        onClose={() => setIsProjectSwitcherOpen(false)}
+        projects={projects.map((b) => b.project)}
+        itemCounts={Object.fromEntries(projects.map((b) => [b.project.id, b.items.length]))}
+        activeProjectId={activeProjectId}
+        isDarkMode={isDarkMode}
+        onSwitchProject={handleSwitchProject}
+        onCreateProject={handleCreateProject}
+        onDeleteProject={handleDeleteProject}
       />
     </div>
   );
