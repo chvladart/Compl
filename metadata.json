@@ -1,0 +1,8 @@
+{
+  "name": "Remix COMPLSPEC STUDIO — Комплектация дизайн-проектов",
+  "description": "Сервис для комплектации дизайн-проектов интерьера: спецификации материалов, мебели, освещения, расчет бюджета, экспорт в Excel с фото и PDF с QR-кодами, облачная синхронизация и роли доступа.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
